@@ -1,0 +1,54 @@
+#!/bin/bash
+#
+# Converts HEIC portrait mode images from iphone into
+# RGBD JPEG images that the Looking Glass Portrait can load.
+#
+while getopts "o:i:" ARG; do
+  case $ARG in
+    o)
+      OUTPUT_FILE="$OPTARG" 
+      ;;
+    i)
+      INPUT_FILE="$OPTARG"
+      ;;
+  esac
+done
+
+if [ -z ${INPUT_FILE+x} ]; then
+  echo "input file required.";
+  exit 1;
+elif [[ $INPUT_FILE != *.heic ]]; then
+  echo "$INPUT_FILE is not an heic file"
+  exit 2;
+fi
+
+if [ -z ${OUTPUT_FILE+x} ]; then
+  echo "output file required.";
+  exit 10;
+fi
+
+echo "INPUT:$INPUT_FILE"
+echo "OUTPUT:$OUTPUT_FILE"
+
+TMPDIR=$(mktemp -d)
+
+ABS_INPUT_FILE=$(readlink -f "$INPUT_FILE")
+NAME="${INPUT_PATH%.*}"
+
+/opt/homebrew/bin/convert --version
+
+#
+# do the work in a temp directory to workaround path issues in heif-convert.
+#
+pushd "$TMPDIR" > /dev/null
+/opt/homebrew/bin/heif-convert "$ABS_INPUT_FILE" "tmp.jpg" > /dev/null
+/opt/homebrew/bin/convert -quiet -resize 2048x2048 "tmp.jpg" "tmp-rgb.jpg"
+/opt/homebrew/bin/convert -resize 2048x2048 "tmp-depth.jpg" "tmp-d.jpg"
+/opt/homebrew/bin/convert "tmp-rgb.jpg" "tmp-d.jpg" +append "tmp-rgbd.jpg"
+popd > /dev/null
+
+# produce the output
+mv "$TMPDIR/tmp-rgbd.jpg" "$OUTPUT_FILE"
+
+# clean up temp
+rm -rf "$TMPDIR"

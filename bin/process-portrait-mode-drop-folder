@@ -1,0 +1,40 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+DROP_FOLDER=$1;
+JPEG_FOLDER=$2;
+HEIC_FOLDER=$3;
+CONVERT_PM="$SCRIPT_DIR/convert-portrait-mode";
+
+if [ -z ${DROP_FOLDER+x} ]; then
+  echo "input file required.";
+  exit 1;
+fi
+
+if [ -z ${JPEG_FOLDER+x} ]; then
+  echo "input file required.";
+  exit 1;
+fi
+
+if [ -z ${HEIC_FOLDER+x} ]; then
+  echo "input file required.";
+  exit 1;
+fi
+
+echo "Processing files in $DROP_FOLDER as $(whoami)"
+
+pushd "$DROP_FOLDER" > /dev/null
+shopt -s nullglob
+for INPUT_FILE in *.heic
+do
+  HEIC_NAME=$(basename $INPUT_FILE)
+  JPEG_NAME=${HEIC_NAME/heic/jpg}
+  echo "Processing $HEIC_NAME"
+  LOGS=$("$CONVERT_PM" -i "$INPUT_FILE" -o "$JPEG_FOLDER/$JPEG_NAME")
+  echo "$LOGS"
+  mv "$INPUT_FILE" "$HEIC_FOLDER/$HEIC_NAME"
+done
+popd > /dev/null
+
+echo "Done processing $DROP_FOLDER"
